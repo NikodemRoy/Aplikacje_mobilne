@@ -1,52 +1,68 @@
 import React, { useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { auth } from '../app/firebaseConfig';
 import { AuthContext } from '@/contexts/AuthContext';
+import {
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  createUserWithEmailAndPassword,
+} from 'firebase/auth';
 
 type User = {
+  uid: string;
   email: string;
-  role: 'admin' | 'worker';
 };
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadUser = async () => {
-      const json = await AsyncStorage.getItem('user');
-      if (json) {
-        setUser(JSON.parse(json));
+    const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
+      if (fbUser) {
+        setUser({ uid: fbUser.uid, email: fbUser.email! });
+      } else {
+        setUser(null);
       }
-    };
-    loadUser();
+      setLoading(false);
+    });
+    return unsubscribe;
   }, []);
 
-  const login = async (email: string, password: string) => {
-    // Hardcoded admin - do ustalenia jak to rozwiazac
-    if (email === 'test' && password === '123') {
-      const userData: User = { email, role: 'admin' };
-      setUser(userData);
-      await AsyncStorage.setItem('user', JSON.stringify(userData));
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
       return true;
+    } catch (e) {
+      console.log('Firebase login error:', e);
+      return false;
     }
+  };
 
-    // pracownik - bedzie trzeba jeszcze rozbudowac
-    if (password.length >= 4) {
-      const userData: User = { email, role: 'worker' };
-      setUser(userData);
-      await AsyncStorage.setItem('user', JSON.stringify(userData));
+  const registerEmployee = async (
+    email: string,
+    password: string
+  ): Promise<boolean> => {
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
       return true;
+    } catch (e) {
+      console.log('Firebase register error:', e);
+      return false;
     }
-
-    return false;
   };
 
   const logout = async () => {
+    await signOut(auth);
     setUser(null);
-    await AsyncStorage.removeItem('user');
   };
 
+  if (loading) {
+    return null;
+  }
+
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, registerEmployee }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, Alert } from 'react-native';
-import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { Alert, KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
+import { Button, TextInput, Title } from 'react-native-paper';
+import { useAuth } from '../../hooks/useAuth';
 
 export default function LoginScreen() {
   const { login } = useAuth();
@@ -10,42 +11,82 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
 
   const handleLogin = async () => {
-    const success = await login(email, password);
-    if (success) {
-      router.replace('/');
+    if (!email || !password) {
+      Alert.alert('Uwaga', 'Podaj email i hasło');
       return;
     }
-    Alert.alert('Błąd', 'Nieprawidłowe dane logowania');
+    const success = await login(email.trim(), password);
+    if (success) {
+      router.replace('/');
+    } else {
+      Alert.alert('Błąd', 'Nieprawidłowe dane logowania');
+    }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Logowanie</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        autoCapitalize="none"
-        value={email}
-        onChangeText={setEmail}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Hasło"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-      <Pressable style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Zaloguj</Text>
-      </Pressable>
-    </View>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={styles.container}
+    >
+      <View style={styles.inner}>
+        <Title style={styles.title}>Logowanie</Title>
+
+        <TextInput
+          label="Email"
+          mode="outlined"
+          autoCapitalize="none"
+          keyboardType="email-address"
+          value={email}
+          onChangeText={setEmail}
+          style={styles.input}
+        />
+
+        <TextInput
+          label="Hasło"
+          mode="outlined"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+          style={styles.input}
+        />
+
+        <Button mode="contained" onPress={handleLogin} style={styles.button}>
+          Zaloguj się
+        </Button>
+
+        <Button
+          mode="text"
+          onPress={() => router.push('/register')}
+          style={styles.link}
+        >
+          Stwórz konto
+        </Button>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 20 },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
-  input: { borderWidth: 1, borderColor: '#ccc', padding: 10, marginBottom: 10, borderRadius: 4 },
-  button: { backgroundColor: '#007AFF', padding: 12, borderRadius: 4 },
-  buttonText: { color: '#fff', textAlign: 'center', fontWeight: 'bold' },
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  inner: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  title: {
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  input: {
+    marginBottom: 16,
+  },
+  button: {
+    marginTop: 8,
+  },
+  link: {
+    marginTop: 16,
+  },
 });

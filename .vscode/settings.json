@@ -3,5 +3,11 @@
     "source.fixAll": "explicit",
     "source.organizeImports": "explicit",
     "source.sortMembers": "explicit"
-  }
+  },
+  "json.schemas": [
+    {
+      "fileMatch": ["package.json"],
+      "url": ""
+    }
+  ]
 }

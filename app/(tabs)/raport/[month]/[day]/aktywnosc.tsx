@@ -1,14 +1,9 @@
-import React from 'react';
-import { StyleSheet, ScrollView, View } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, View, FlatList, ActivityIndicator } from 'react-native';
+import { Appbar, List, Button, Text } from 'react-native-paper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import {
-  Appbar,
-  Card,
-  DataTable,
-  Button,
-  Text,
-} from 'react-native-paper';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '../../../../../hooks/useAuth';
+import { saveReportForDate } from '../../../../services/reportService';
 
 const ACTIVITIES = [
   'Delegacja',
@@ -34,100 +29,102 @@ export default function ChooseActivityScreen() {
   const month = params.month!;
   const day = params.day!;
 
-  const handleSelect = (activityName: string) => {
-    // Zapisz wybraną aktywność dla raportu (np. do bazy lub AsyncStorage)
-    // ...
-    // Po wyborze wracamy do widoku raportu
-    router.replace(`/raport/${month}/${day}`);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+
+  const now = new Date();
+  const year = now.getFullYear();
+  const MONTH_NAMES = [
+    'styczeń','luty','marzec','kwiecień','maj','czerwiec',
+    'lipiec','sierpień','wrzesień','październik','listopad','grudzień'
+  ];
+  const monthIndex = MONTH_NAMES.indexOf(month.toLowerCase());
+  const monthNumber = String(monthIndex + 1).padStart(2, '0');
+  const dayNumber = day.padStart(2, '0');
+  const dateString = `${year}-${monthNumber}-${dayNumber}`;
+
+  const handleSelect = async (activity: string) => {
+    if (!user) return;
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      await saveReportForDate(user.uid, dateString, activity);
+      router.replace(`/raport/${month}/${day}`);
+    } catch (e) {
+      console.log('Błąd podczas zapisu:', e);
+      setError('Nie udało się zapisać raportu. Spróbuj ponownie.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
-    <ScrollView style={styles.outerContainer}>
+    <View style={styles.outerContainer}>
       <Appbar.Header>
         <Appbar.Action
           icon="arrow-left"
           onPress={() => router.replace(`/raport/${month}/${day}`)}
         />
-        <Appbar.Content title="Wybierz aktywność" />
+        <Appbar.Content title={`Wybierz aktywność (${day} ${month})`} />
       </Appbar.Header>
 
-      <Card style={styles.infoCard}>
-        <Card.Content style={styles.infoContent}>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Data aktywności:</Text>
-            <Text>{`${day}.${month}`}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Osoba:</Text>
-            <Text>{user?.email ?? '—'}</Text>
-          </View>
-        </Card.Content>
-      </Card>
+      {isSaving ? (
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="large" />
+          <Text style={styles.savingText}>Zapisuję...</Text>
+        </View>
+      ) : (
+        <>
+          {error && (
+            <Text style={styles.errorText}>{error}</Text>
+          )}
 
-      <Card style={styles.tableCard}>
-        <Card.Content>
-          <Text style={styles.tableTitle}>
-            Dostępne aktywności ({ACTIVITIES.length})
-          </Text>
-          <DataTable>
-            <DataTable.Header>
-              <DataTable.Title>Aktywność</DataTable.Title>
-              <DataTable.Title>Wybierz</DataTable.Title>
-            </DataTable.Header>
+          <FlatList
+            data={ACTIVITIES}
+            keyExtractor={(item) => item}
+            renderItem={({ item }) => (
+              <List.Item
+                title={item}
+                onPress={() => handleSelect(item)}
+                left={(props) => <List.Icon {...props} icon="check" />}
+              />
+            )}
+          />
 
-            {ACTIVITIES.map((name) => (
-              <DataTable.Row key={name}>
-                <DataTable.Cell>{name}</DataTable.Cell>
-                <DataTable.Cell>
-                  <Button
-                    mode="contained"
-                    compact
-                    onPress={() => handleSelect(name)}
-                  >
-                    Wybierz
-                  </Button>
-                </DataTable.Cell>
-              </DataTable.Row>
-            ))}
-          </DataTable>
-        </Card.Content>
-      </Card>
-    </ScrollView>
+          <Button
+            mode="text"
+            onPress={() => router.replace(`/raport/${month}/${day}`)}
+            style={styles.cancelButton}
+          >
+            Anuluj
+          </Button>
+        </>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   outerContainer: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
   },
-  infoCard: {
-    margin: 16,
-    borderRadius: 4,
-    elevation: 2,
-  },
-  infoContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-  },
-  infoRow: {
+  loaderContainer: {
     flex: 1,
-    marginHorizontal: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  infoLabel: {
-    fontWeight: 'bold',
-    marginBottom: 4,
+  savingText: {
+    marginTop: 12,
   },
-  tableCard: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 4,
-    elevation: 2,
+  errorText: {
+    color: 'red',
+    textAlign: 'center',
+    marginVertical: 8,
   },
-  tableTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 8,
+  cancelButton: {
+    margin: 16,
   },
 });
