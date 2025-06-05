@@ -1,0 +1,208 @@
+import React, { useEffect, useState } from 'react';
+import { View, StyleSheet, Platform, useWindowDimensions } from 'react-native';
+import { Calendar, DateData, LocaleConfig } from 'react-native-calendars';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import {
+  Appbar,
+  Button,
+  Dialog,
+  List,
+  Portal,
+  Card,
+} from 'react-native-paper';
+
+
+LocaleConfig.locales['pl'] = {
+  monthNames: [
+    'Styczeń',
+    'Luty',
+    'Marzec',
+    'Kwiecień',
+    'Maj',
+    'Czerwiec',
+    'Lipiec',
+    'Sierpień',
+    'Wrzesień',
+    'Październik',
+    'Listopad',
+    'Grudzień',
+  ],
+  monthNamesShort: [
+    'Sty',
+    'Lut',
+    'Mar',
+    'Kwi',
+    'Maj',
+    'Cze',
+    'Lip',
+    'Sie',
+    'Wrz',
+    'Paź',
+    'Lis',
+    'Gru',
+  ],
+  dayNames: [
+    'Niedziela',
+    'Poniedziałek',
+    'Wtorek',
+    'Środa',
+    'Czwartek',
+    'Piątek',
+    'Sobota',
+  ],
+  dayNamesShort: ['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb'],
+  today: 'Dziś',
+};
+LocaleConfig.defaultLocale = 'pl';
+
+const MONTH_NAMES = [
+  'styczeń',
+  'luty',
+  'marzec',
+  'kwiecień',
+  'maj',
+  'czerwiec',
+  'lipiec',
+  'sierpień',
+  'wrzesień',
+  'październik',
+  'listopad',
+  'grudzień',
+];
+
+export default function MonthCalendarScreen() {
+  const router = useRouter();
+  const params = useLocalSearchParams<{ year: string; month: string }>();
+  const year = Number(params.year);
+  const monthNameParam = (params.month || '').toLowerCase();
+  const monthIndex = MONTH_NAMES.indexOf(monthNameParam);
+
+  const { width, height } = useWindowDimensions();
+  const today = new Date().toISOString().split('T')[0];
+  const [pickerVisible, setPickerVisible] = useState(false);
+
+  useEffect(() => {
+    if (
+      isNaN(year) ||
+      year < 1900 ||
+      year > 3000 ||
+      monthIndex < 0 ||
+      monthIndex > 11
+    ) {
+      const now = new Date();
+      const y = now.getFullYear();
+      const mName = MONTH_NAMES[now.getMonth()];
+      router.replace(`/${y}/${mName}`);
+    }
+  }, [year, monthIndex, router]);
+
+  const navigateToMonth = (y: number, mIdx: number) => {
+    router.replace(`/${y}/${MONTH_NAMES[mIdx]}`);
+  };
+
+  const onDayPress = (date: DateData) => {
+    // Pobieramy nazwę bieżącego miesiąca
+    const monthName = MONTH_NAMES[monthIndex];
+    // Przekierowujemy na /raport/<monthName>/<day>
+    router.push(`/raport/${monthName}/${date.day}`);
+  };
+
+  const changeMonth = (offset: number) => {
+    const newDate = new Date(year, monthIndex + offset, 1);
+    navigateToMonth(newDate.getFullYear(), newDate.getMonth());
+  };
+
+  const formattedCurrent = `${year}-${String(monthIndex + 1).padStart(2, '0')}-01`;
+
+  return (
+    <View style={styles.outerContainer}>
+      <Appbar.Header>
+        <Appbar.Action icon="chevron-left" onPress={() => changeMonth(-1)} />
+        <Appbar.Content title={`${MONTH_NAMES[monthIndex]} ${year}`} />
+        <Appbar.Action icon="menu-down" onPress={() => setPickerVisible(true)} />
+        <Appbar.Action icon="chevron-right" onPress={() => changeMonth(1)} />
+      </Appbar.Header>
+
+      <Button mode="contained" style={styles.listButton}>
+        Lista dni pracy
+      </Button>
+
+      <Card style={[styles.cardContainer, { width: width - 32 }]}>
+        <Card.Content style={styles.cardContent}>
+          <Calendar
+            key={formattedCurrent}
+            current={formattedCurrent}
+            firstDay={1}
+            hideArrows
+            hideExtraDays={false}
+            onDayPress={onDayPress}
+            markedDates={{ [today]: { selected: true, selectedColor: '#6200ee' } }}
+            theme={{
+              calendarBackground: '#ffffff',
+              dayTextColor: '#000000',
+              textDayFontSize: 14,
+              textDayHeaderFontSize: 14,
+              todayTextColor: '#6200ee',
+              selectedDayBackgroundColor: '#6200ee',
+              monthTextColor: '#000000',
+              arrowColor: '#000000',
+              textDisabledColor: '#cccccc',
+            }}
+            style={styles.calendar}
+          />
+        </Card.Content>
+      </Card>
+
+      <Portal>
+        <Dialog visible={pickerVisible} onDismiss={() => setPickerVisible(false)}>
+          <Dialog.Title>Wybierz miesiąc</Dialog.Title>
+          <Dialog.Content style={{ maxHeight: height * 0.5 }}>
+            {MONTH_NAMES.map((m, idx) => (
+              <List.Item
+                key={m}
+                title={m.charAt(0).toUpperCase() + m.slice(1)}
+                onPress={() => {
+                  navigateToMonth(year, idx);
+                  setPickerVisible(false);
+                }}
+              />
+            ))}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setPickerVisible(false)}>Anuluj</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  outerContainer: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+    paddingTop: Platform.select({ ios: 50, android: 20 }) || 20,
+    alignItems: 'center',
+  },
+  listButton: {
+    marginVertical: 8,
+    width: '90%',
+    alignSelf: 'center',
+  },
+  cardContainer: {
+    margin: 8,
+    borderRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#cccccc',
+  },
+  cardContent: {
+    padding: 0,
+  },
+  calendar: {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#cccccc',
+    borderRadius: 4,
+  },
+});

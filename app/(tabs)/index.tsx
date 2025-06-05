@@ -1,36 +1,31 @@
 // app/(tabs)/index.tsx
-
-import React from 'react';
-import { View, Text, Button, StyleSheet } from 'react-native';
-import { useAuth } from '@/hooks/useAuth';
+import { useEffect } from 'react';
 import { useRouter } from 'expo-router';
 
-export default function IndexScreen() {
-  const { user, logout } = useAuth();
+const MONTH_NAMES = [
+  'styczeń',
+  'luty',
+  'marzec',
+  'kwiecień',
+  'maj',
+  'czerwiec',
+  'lipiec',
+  'sierpień',
+  'wrzesień',
+  'październik',
+  'listopad',
+  'grudzień',
+];
+
+export default function RedirectToCurrentMonth() {
   const router = useRouter();
+  const today = new Date();
+  const year = today.getFullYear();
+  const monthName = MONTH_NAMES[today.getMonth()];
 
-  const handleLogout = async () => {
-    await logout();
-    router.replace('/login');
-  };
+  useEffect(() => {
+    router.replace(`/${year}/${monthName}`);
+  }, [router, year, monthName]);
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.greeting}>Witaj, {user?.email}!</Text>
-      <Button title="Wyloguj" onPress={handleLogout} />
-    </View>
-  );
+  return null;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  greeting: {
-    fontSize: 24,
-    marginBottom: 20,
-  },
-});
