@@ -64,7 +64,7 @@ export default function DayReportScreen() {
   return (
     <View style={styles.outerContainer}>
       <Appbar.Header>
-        <Appbar.Action icon="arrow-left" onPress={() => router.replace(`/`)} />
+        <Appbar.Action icon="arrow-left" onPress={() => router.replace(`/raport/${month}`)} />
         <Appbar.Content title={`Raport: ${month} ${day}`} />
       </Appbar.Header>
 

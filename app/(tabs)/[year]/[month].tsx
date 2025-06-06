@@ -1,3 +1,5 @@
+// app/(tabs)/[year]/[month].tsx
+
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -5,6 +7,7 @@ import {
   Platform,
   useWindowDimensions,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import { Calendar, DateData, LocaleConfig } from 'react-native-calendars';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -174,6 +177,7 @@ export default function MonthCalendarScreen() {
             hideArrows
             hideExtraDays={false}
             onDayPress={onDayPress}
+            renderHeader={() => null} // ukrywa nazwę miesiąca wewnątrz kalendarza
             theme={{
               calendarBackground: '#ffffff',
               dayTextColor: '#000000',
@@ -207,12 +211,25 @@ export default function MonthCalendarScreen() {
                 : '#000';
 
               return (
-                <View style={styles.dayWrapper}>
-                  <Text style={[styles.dayText, { color: textColor }]}>
-                    {date.day}
-                    {hasReport ? ' /1' : ' /0'}
-                  </Text>
-                </View>
+                <TouchableOpacity
+                  onPress={() => state !== 'disabled' && onDayPress(date)}
+                  disabled={state === 'disabled'}
+                  style={styles.dayWrapper}
+                >
+                  <View style={styles.cellBorder}>
+                    <Text style={[styles.dayText, { color: textColor }]}>
+                      {date.day}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.statusText,
+                        { color: hasReport ? 'green' : 'red' },
+                      ]}
+                    >
+                      {hasReport ? 'TAK' : 'NIE'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
               );
             }}
           />
@@ -278,19 +295,27 @@ const styles = StyleSheet.create({
   },
   dayWrapper: {
     width: 32,
-    height: 32,
+    height: 48, // wyższy, by pomieścić dzień i status pod nim
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cellBorder: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    width: '100%',
+    height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
   },
   dayText: {
     fontSize: 14,
   },
+  statusText: {
+    fontSize: 10,
+  },
   listButton: {
     marginVertical: 8,
     width: '90%',
     alignSelf: 'center',
-  },
-  cardContentContainer: {
-    padding: 0,
   },
 });
