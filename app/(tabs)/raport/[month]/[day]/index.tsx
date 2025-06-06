@@ -3,7 +3,7 @@ import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Appbar, Card, Button, Text } from 'react-native-paper';
 import { useAuth } from '../../../../../hooks/useAuth';
-import { getReportForDate, DailyReport  } from '../../../../services/reportService';
+import { getReportForDate, DailyReport } from '../../../../services/reportService';
 
 export default function DayReportScreen() {
   const router = useRouter();
@@ -18,22 +18,31 @@ export default function DayReportScreen() {
   useEffect(() => {
     if (!user) return;
 
-    // Ustalenie roku i numeru miesiąca (1–12)
+
     const now = new Date();
     const year = now.getFullYear();
     const MONTH_NAMES = [
-      'styczeń','luty','marzec','kwiecień','maj','czerwiec',
-      'lipiec','sierpień','wrzesień','październik','listopad','grudzień'
+      'styczeń',
+      'luty',
+      'marzec',
+      'kwiecień',
+      'maj',
+      'czerwiec',
+      'lipiec',
+      'sierpień',
+      'wrzesień',
+      'październik',
+      'listopad',
+      'grudzień',
     ];
     const monthIndex = MONTH_NAMES.indexOf(month.toLowerCase());
     const monthNumber = String(monthIndex + 1).padStart(2, '0');
     const dayNumber = day.padStart(2, '0');
-    const dateString = `${year}-${monthNumber}-${dayNumber}`; // np. "2025-06-05"
+    const dateString = `${year}-${monthNumber}-${dayNumber}`;
 
-    // Pobranie dokumentu z Firestore
     getReportForDate(user.uid, dateString)
-      .then(doc => {
-        setReportData(doc);       // albo `null`, jeżeli brak
+      .then((doc) => {
+        setReportData(doc);
       })
       .finally(() => {
         setIsLoading(false);
@@ -70,18 +79,42 @@ export default function DayReportScreen() {
               <Text style={styles.statusText}>
                 Raport na ten dzień został już wypełniony.
               </Text>
+
               <Text style={styles.activityText}>
                 Aktywność: {reportData.activity}
               </Text>
+
+              {}
+              {reportData.startTime && reportData.endTime && (
+                <>
+                  <Text style={styles.timeText}>
+                    Rozpoczęcie: {reportData.startTime}
+                  </Text>
+                  <Text style={styles.timeText}>
+                    Zakończenie: {reportData.endTime}
+                  </Text>
+                </>
+              )}
+
+              {typeof reportData.totalHours === 'number' && (
+                <Text style={styles.hoursText}>
+                  Przepracowano: {reportData.totalHours.toFixed(0)}{' '}
+                  {reportData.totalHours === 1 ? 'godzinę' : 'godzin'}
+                </Text>
+              )}
+
               <Text style={styles.dateText}>
-                Data utworzenia: {reportData.createdAt.toDate().toLocaleString()}
+                Data utworzenia: {reportData.createdAt
+                  .toDate()
+                  .toLocaleString()}
               </Text>
+
               <Button
                 mode="outlined"
                 onPress={handleAddActivity}
                 style={styles.addButton}
               >
-                Edytuj aktywność
+                Edytuj aktywność / godziny
               </Button>
             </>
           ) : (
@@ -134,6 +167,15 @@ const styles = StyleSheet.create({
   },
   activityText: {
     fontSize: 16,
+    marginBottom: 8,
+  },
+  timeText: {
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  hoursText: {
+    fontSize: 16,
+    fontWeight: 'bold',
     marginBottom: 8,
   },
   dateText: {

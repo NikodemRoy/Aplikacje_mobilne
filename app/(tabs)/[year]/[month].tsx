@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Platform, useWindowDimensions } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  Platform,
+  useWindowDimensions,
+  ActivityIndicator,
+} from 'react-native';
 import { Calendar, DateData, LocaleConfig } from 'react-native-calendars';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
@@ -9,8 +15,10 @@ import {
   List,
   Portal,
   Card,
+  Text,
 } from 'react-native-paper';
-
+import { useAuth } from '../../../hooks/useAuth';
+import { getReportsForMonth, DailyReport } from '../../services/reportService';
 
 LocaleConfig.locales['pl'] = {
   monthNames: [
@@ -73,13 +81,17 @@ const MONTH_NAMES = [
 export default function MonthCalendarScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ year: string; month: string }>();
+  const { user } = useAuth();
   const year = Number(params.year);
   const monthNameParam = (params.month || '').toLowerCase();
   const monthIndex = MONTH_NAMES.indexOf(monthNameParam);
 
   const { width, height } = useWindowDimensions();
-  const today = new Date().toISOString().split('T')[0];
   const [pickerVisible, setPickerVisible] = useState(false);
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [reportsMap, setReportsMap] = useState<Record<string, DailyReport>>({});
+  const [totalHoursSum, setTotalHoursSum] = useState(0);
 
   useEffect(() => {
     if (
@@ -93,18 +105,31 @@ export default function MonthCalendarScreen() {
       const y = now.getFullYear();
       const mName = MONTH_NAMES[now.getMonth()];
       router.replace(`/${y}/${mName}`);
+      return;
     }
-  }, [year, monthIndex, router]);
+
+    if (!user) return;
+    setIsLoading(true);
+
+    getReportsForMonth(user.uid, year, monthIndex)
+      .then((map) => {
+        setReportsMap(map);
+
+        let sum = 0;
+        Object.values(map).forEach((rep) => {
+          if (typeof rep.totalHours === 'number') {
+            sum += rep.totalHours;
+          }
+        });
+        setTotalHoursSum(sum);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, [user, year, monthIndex, router]);
 
   const navigateToMonth = (y: number, mIdx: number) => {
     router.replace(`/${y}/${MONTH_NAMES[mIdx]}`);
-  };
-
-  const onDayPress = (date: DateData) => {
-    // Pobieramy nazwę bieżącego miesiąca
-    const monthName = MONTH_NAMES[monthIndex];
-    // Przekierowujemy na /raport/<monthName>/<day>
-    router.push(`/raport/${monthName}/${date.day}`);
   };
 
   const changeMonth = (offset: number) => {
@@ -112,7 +137,20 @@ export default function MonthCalendarScreen() {
     navigateToMonth(newDate.getFullYear(), newDate.getMonth());
   };
 
+  const onDayPress = (date: DateData) => {
+    const monthName = MONTH_NAMES[monthIndex];
+    router.push(`/raport/${monthName}/${date.day}`);
+  };
+
   const formattedCurrent = `${year}-${String(monthIndex + 1).padStart(2, '0')}-01`;
+
+  if (isLoading) {
+    return (
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.outerContainer}>
@@ -123,9 +161,9 @@ export default function MonthCalendarScreen() {
         <Appbar.Action icon="chevron-right" onPress={() => changeMonth(1)} />
       </Appbar.Header>
 
-      <Button mode="contained" style={styles.listButton}>
-        Lista dni pracy
-      </Button>
+      <Text style={styles.summaryText}>
+        Łącznie przepracowano: {totalHoursSum} godz.
+      </Text>
 
       <Card style={[styles.cardContainer, { width: width - 32 }]}>
         <Card.Content style={styles.cardContent}>
@@ -136,7 +174,6 @@ export default function MonthCalendarScreen() {
             hideArrows
             hideExtraDays={false}
             onDayPress={onDayPress}
-            markedDates={{ [today]: { selected: true, selectedColor: '#6200ee' } }}
             theme={{
               calendarBackground: '#ffffff',
               dayTextColor: '#000000',
@@ -149,6 +186,35 @@ export default function MonthCalendarScreen() {
               textDisabledColor: '#cccccc',
             }}
             style={styles.calendar}
+            dayComponent={({ date, state }) => {
+              if (!date) return null;
+              const dateStr = `${year}-${String(date.month).padStart(
+                2,
+                '0'
+              )}-${String(date.day).padStart(2, '0')}`;
+              const hasReport = !!reportsMap[dateStr];
+
+              const weekday = new Date(
+                date.year,
+                date.month - 1,
+                date.day
+              ).getDay();
+              const isSunday = weekday === 0;
+              const textColor = isSunday
+                ? '#d9534f'
+                : state === 'disabled'
+                ? '#ccc'
+                : '#000';
+
+              return (
+                <View style={styles.dayWrapper}>
+                  <Text style={[styles.dayText, { color: textColor }]}>
+                    {date.day}
+                    {hasReport ? ' /1' : ' /0'}
+                  </Text>
+                </View>
+              );
+            }}
           />
         </Card.Content>
       </Card>
@@ -178,16 +244,21 @@ export default function MonthCalendarScreen() {
 }
 
 const styles = StyleSheet.create({
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   outerContainer: {
     flex: 1,
     backgroundColor: '#f5f5f5',
     paddingTop: Platform.select({ ios: 50, android: 20 }) || 20,
     alignItems: 'center',
   },
-  listButton: {
+  summaryText: {
+    fontSize: 16,
+    fontWeight: '500',
     marginVertical: 8,
-    width: '90%',
-    alignSelf: 'center',
   },
   cardContainer: {
     margin: 8,
@@ -204,5 +275,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#cccccc',
     borderRadius: 4,
+  },
+  dayWrapper: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dayText: {
+    fontSize: 14,
+  },
+  listButton: {
+    marginVertical: 8,
+    width: '90%',
+    alignSelf: 'center',
+  },
+  cardContentContainer: {
+    padding: 0,
   },
 });
