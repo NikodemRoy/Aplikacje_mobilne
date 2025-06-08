@@ -23,41 +23,16 @@ import { getReportsForMonth, DailyReport } from '../../services/reportService';
 
 LocaleConfig.locales['pl'] = {
   monthNames: [
-    'Styczeń',
-    'Luty',
-    'Marzec',
-    'Kwiecień',
-    'Maj',
-    'Czerwiec',
-    'Lipiec',
-    'Sierpień',
-    'Wrzesień',
-    'Październik',
-    'Listopad',
-    'Grudzień',
+    'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
+    'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień',
   ],
   monthNamesShort: [
-    'Sty',
-    'Lut',
-    'Mar',
-    'Kwi',
-    'Maj',
-    'Cze',
-    'Lip',
-    'Sie',
-    'Wrz',
-    'Paź',
-    'Lis',
-    'Gru',
+    'Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze',
+    'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru',
   ],
   dayNames: [
-    'Niedziela',
-    'Poniedziałek',
-    'Wtorek',
-    'Środa',
-    'Czwartek',
-    'Piątek',
-    'Sobota',
+    'Niedziela', 'Poniedziałek', 'Wtorek', 'Środa',
+    'Czwartek', 'Piątek', 'Sobota',
   ],
   dayNamesShort: ['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb'],
   today: 'Dziś',
@@ -65,42 +40,28 @@ LocaleConfig.locales['pl'] = {
 LocaleConfig.defaultLocale = 'pl';
 
 const MONTH_NAMES = [
-  'styczeń',
-  'luty',
-  'marzec',
-  'kwiecień',
-  'maj',
-  'czerwiec',
-  'lipiec',
-  'sierpień',
-  'wrzesień',
-  'październik',
-  'listopad',
-  'grudzień',
+  'styczeń', 'luty', 'marzec', 'kwiecień', 'maj', 'czerwiec',
+  'lipiec', 'sierpień', 'wrzesień', 'październik', 'listopad', 'grudzień',
 ];
 
 export default function MonthCalendarScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ year: string; month: string }>();
-  const { user } = useAuth();
+  const { user, logout } = useAuth(); // dodano logout
   const year = Number(params.year);
   const monthNameParam = (params.month || '').toLowerCase();
   const monthIndex = MONTH_NAMES.indexOf(monthNameParam);
 
   const { width, height } = useWindowDimensions();
   const [pickerVisible, setPickerVisible] = useState(false);
-
   const [isLoading, setIsLoading] = useState(true);
   const [reportsMap, setReportsMap] = useState<Record<string, DailyReport>>({});
   const [totalHoursSum, setTotalHoursSum] = useState(0);
 
   useEffect(() => {
     if (
-      isNaN(year) ||
-      year < 1900 ||
-      year > 3000 ||
-      monthIndex < 0 ||
-      monthIndex > 11
+      isNaN(year) || year < 1900 || year > 3000 ||
+      monthIndex < 0 || monthIndex > 11
     ) {
       const now = new Date();
       const y = now.getFullYear();
@@ -155,13 +116,13 @@ export default function MonthCalendarScreen() {
 
   return (
     <View style={styles.outerContainer}>
-    <Appbar.Header>
-      <Appbar.Action icon="chevron-left" onPress={() => changeMonth(-1)} />
-      <Appbar.Content title={`${MONTH_NAMES[monthIndex]} ${year}`} />
-      <Appbar.Action icon="cog" onPress={() => router.push('/settings')} />
-      <Appbar.Action icon="menu-down" onPress={() => setPickerVisible(true)} />
-      <Appbar.Action icon="chevron-right" onPress={() => changeMonth(1)} />
-    </Appbar.Header>
+      <Appbar.Header>
+        <Appbar.Action icon="chevron-left" onPress={() => changeMonth(-1)} />
+        <Appbar.Content title={`${MONTH_NAMES[monthIndex]} ${year}`} />
+        <Appbar.Action icon="cog" onPress={() => router.push('/settings')} />
+        <Appbar.Action icon="menu-down" onPress={() => setPickerVisible(true)} />
+        <Appbar.Action icon="chevron-right" onPress={() => changeMonth(1)} />
+      </Appbar.Header>
 
       <Text style={styles.summaryText}>
         Łącznie przepracowano: {totalHoursSum} godz.
@@ -176,7 +137,7 @@ export default function MonthCalendarScreen() {
             hideArrows
             hideExtraDays={false}
             onDayPress={onDayPress}
-            renderHeader={() => null} // ukrywa nazwę miesiąca wewnątrz kalendarza
+            renderHeader={() => null}
             theme={{
               calendarBackground: '#ffffff',
               dayTextColor: '#000000',
@@ -191,17 +152,9 @@ export default function MonthCalendarScreen() {
             style={styles.calendar}
             dayComponent={({ date, state }) => {
               if (!date) return null;
-              const dateStr = `${year}-${String(date.month).padStart(
-                2,
-                '0'
-              )}-${String(date.day).padStart(2, '0')}`;
+              const dateStr = `${year}-${String(date.month).padStart(2, '0')}-${String(date.day).padStart(2, '0')}`;
               const hasReport = !!reportsMap[dateStr];
-
-              const weekday = new Date(
-                date.year,
-                date.month - 1,
-                date.day
-              ).getDay();
+              const weekday = new Date(date.year, date.month - 1, date.day).getDay();
               const isSunday = weekday === 0;
               const textColor = isSunday
                 ? '#d9534f'
@@ -255,6 +208,15 @@ export default function MonthCalendarScreen() {
           </Dialog.Actions>
         </Dialog>
       </Portal>
+
+      <View style={styles.logoutWrapper}>
+        <Button mode="outlined" onPress={() => {
+          logout();
+          router.replace('/login');
+        }}>
+          Wyloguj
+        </Button>
+      </View>
     </View>
   );
 }
@@ -294,7 +256,7 @@ const styles = StyleSheet.create({
   },
   dayWrapper: {
     width: 32,
-    height: 48, // wyższy, by pomieścić dzień i status pod nim
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -316,5 +278,10 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     width: '90%',
     alignSelf: 'center',
+  },
+  logoutWrapper: {
+    marginTop: 16,
+    alignItems: 'center',
+    marginBottom: 32,
   },
 });
