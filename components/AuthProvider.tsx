@@ -1,68 +1,60 @@
-import React, { useState, useEffect } from 'react';
-import { auth } from '../app/firebaseConfig';
-import { AuthContext } from '@/contexts/AuthContext';
-import {
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-  createUserWithEmailAndPassword,
-} from 'firebase/auth';
-
-type User = {
-  uid: string;
-  email: string;
-};
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword } from 'firebase/auth';
+import { useEffect, useState } from 'react';
+import { auth } from '@/app/firebaseConfig';
+import { AuthContext, User } from '@/contexts/AuthContext';
+import { getUserProfile } from '@/app/services/userService';
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
-      if (fbUser) {
-        setUser({ uid: fbUser.uid, email: fbUser.email! });
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const profile = await getUserProfile(firebaseUser.uid);
+        setUser({
+          uid: firebaseUser.uid,
+          email: firebaseUser.email || '',
+          ...profile,
+        });
       } else {
         setUser(null);
       }
-      setLoading(false);
     });
-    return unsubscribe;
+
+    return () => unsubscribe();
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string) => {
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const res = await signInWithEmailAndPassword(auth, email, password);
+      const profile = await getUserProfile(res.user.uid);
+      setUser({
+        uid: res.user.uid,
+        email: res.user.email || '',
+        ...profile,
+      });
       return true;
-    } catch (e) {
-      console.log('Firebase login error:', e);
+    } catch {
       return false;
     }
   };
 
-  const registerEmployee = async (
-    email: string,
-    password: string
-  ): Promise<boolean> => {
-    try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      return true;
-    } catch (e) {
-      console.log('Firebase register error:', e);
-      return false;
-    }
-  };
-
-  const logout = async () => {
-    await signOut(auth);
+  const logout = () => {
+    signOut(auth);
     setUser(null);
   };
 
-  if (loading) {
-    return null;
-  }
+  const registerEmployee = async (email: string, password: string) => {
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, registerEmployee }}>
+    <AuthContext.Provider value={{ user, login, logout, registerEmployee, setUser }}>
       {children}
     </AuthContext.Provider>
   );

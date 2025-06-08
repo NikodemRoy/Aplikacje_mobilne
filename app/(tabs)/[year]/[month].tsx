@@ -1,5 +1,3 @@
-// app/(tabs)/[year]/[month].tsx
-
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -157,12 +155,13 @@ export default function MonthCalendarScreen() {
 
   return (
     <View style={styles.outerContainer}>
-      <Appbar.Header>
-        <Appbar.Action icon="chevron-left" onPress={() => changeMonth(-1)} />
-        <Appbar.Content title={`${MONTH_NAMES[monthIndex]} ${year}`} />
-        <Appbar.Action icon="menu-down" onPress={() => setPickerVisible(true)} />
-        <Appbar.Action icon="chevron-right" onPress={() => changeMonth(1)} />
-      </Appbar.Header>
+    <Appbar.Header>
+      <Appbar.Action icon="chevron-left" onPress={() => changeMonth(-1)} />
+      <Appbar.Content title={`${MONTH_NAMES[monthIndex]} ${year}`} />
+      <Appbar.Action icon="cog" onPress={() => router.push('/settings')} />
+      <Appbar.Action icon="menu-down" onPress={() => setPickerVisible(true)} />
+      <Appbar.Action icon="chevron-right" onPress={() => changeMonth(1)} />
+    </Appbar.Header>
 
       <Text style={styles.summaryText}>
         Łącznie przepracowano: {totalHoursSum} godz.

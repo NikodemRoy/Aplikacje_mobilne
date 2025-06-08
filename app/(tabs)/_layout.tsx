@@ -14,6 +14,10 @@ export default function TabsLayout() {
     return <Redirect href="/login" />;
   }
 
+  if (!user.firstName || !user.lastName || !user.project) {
+    return <Redirect href="/complete-profile" />;
+  }
+
   return (
     <Tabs
       screenOptions={{

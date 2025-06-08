@@ -38,7 +38,7 @@ export default function ProfileScreen() {
   const [saving, setSaving] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
 
-  // Błędy walidacyjne
+
   const [showFirstNameError, setShowFirstNameError] = useState(false);
   const [showLastNameError, setShowLastNameError] = useState(false);
   const [showProjectError, setShowProjectError] = useState(false);

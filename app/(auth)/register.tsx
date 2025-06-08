@@ -22,8 +22,7 @@ export default function RegisterScreen() {
     }
     const success = await registerEmployee!(email.trim(), password);
     if (success) {
-      Alert.alert('Sukces', 'Konto utworzone. Zaloguj się.');
-      router.replace('/login');
+      router.replace('/complete-profile');  
     } else {
       Alert.alert('Błąd', 'Rejestracja nie powiodła się');
     }
