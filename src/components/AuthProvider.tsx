@@ -1,10 +1,17 @@
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword } from 'firebase/auth';
-import { useEffect, useState } from 'react';
-import { auth } from '@/app/firebaseConfig';
-import { AuthContext, User } from '@/contexts/AuthContext';
-import { getUserProfile } from '@/app/services/userService';
+import React, { useEffect, useState } from 'react';
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut,
+  createUserWithEmailAndPassword,
+} from 'firebase/auth';
+import { auth } from '../config/firebaseConfig';
+import { AuthContext, User } from '../contexts/AuthContext';
+import { getUserProfile } from '../services/userService';
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
@@ -14,13 +21,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser({
           uid: firebaseUser.uid,
           email: firebaseUser.email || '',
-          ...profile,
+          ...(profile ?? {}),
         });
       } else {
         setUser(null);
       }
     });
-
     return () => unsubscribe();
   }, []);
 
@@ -31,7 +37,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser({
         uid: res.user.uid,
         email: res.user.email || '',
-        ...profile,
+        ...(profile ?? {}),
       });
       return true;
     } catch {
@@ -44,7 +50,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(null);
   };
 
-  const registerEmployee = async (email: string, password: string) => {
+  const register = async (email: string, password: string) => {
     try {
       await createUserWithEmailAndPassword(auth, email, password);
       return true;
@@ -54,7 +60,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, registerEmployee, setUser }}>
+    <AuthContext.Provider value={{ user, login, logout, register, setUser }}>
       {children}
     </AuthContext.Provider>
   );
