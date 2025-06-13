@@ -1,11 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  Platform,
-  ActivityIndicator,
-} from 'react-native';
+import { View, StyleSheet, ScrollView, Platform, ActivityIndicator } from 'react-native';
 import { Appbar, List, Button } from 'react-native-paper';
 import { Picker } from '@react-native-picker/picker';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -14,8 +8,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { saveReportForDate } from '../../services/reportService';
 import type { HomeStackParamList } from '../../navigation/AppNavigator';
 
-type ActivityNavProp =
-  NativeStackNavigationProp<HomeStackParamList, 'Activity'>;
+type ActivityNavProp = NativeStackNavigationProp<HomeStackParamList, 'Activity'>;
 type ActivityRouteProp = RouteProp<HomeStackParamList, 'Activity'>;
 
 const ACTIVITIES = [
@@ -29,31 +22,15 @@ const ACTIVITIES = [
   'Zwolnienie chorobowe',
 ] as const;
 
-const NEED_TIME = new Set<string>([
-  'Dzień pracy',
-  'Home office na żądanie',
-  'Home office z regulaminu',
-]);
-
-const FORCED_EIGHT = new Set<string>([
-  'Delegacja',
-  'Zwolnienie chorobowe',
-  'Odbiór dnia wolnego',
-]);
-
-const HOURS = Array.from({ length: 24 }, (_, i) =>
-  `${i.toString().padStart(2, '0')}:00`
-);
+const FORCED_EIGHT = new Set<string>(ACTIVITIES.filter((act) => act !== 'Dzień pracy'));
+const HOURS = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
 
 export default function ActivityScreen() {
   const navigation = useNavigation<ActivityNavProp>();
   const route = useRoute<ActivityRouteProp>();
   const { year, month, day } = route.params;
   const { user } = useAuth();
-
-  const [selectedActivity, setSelectedActivity] = useState<string>(
-    ACTIVITIES[0]
-  );
+  const [selectedActivity, setSelectedActivity] = useState<string>(ACTIVITIES[0]);
   const [startTime, setStartTime] = useState<string>(HOURS[8]);
   const [endTime, setEndTime] = useState<string>(HOURS[16]);
   const [isSaving, setIsSaving] = useState(false);
@@ -65,14 +42,11 @@ export default function ActivityScreen() {
     }
   }, [selectedActivity]);
 
-  const dateString = `${year}-${month.padStart(2, '0')}-${day.padStart(
-    2,
-    '0'
-  )}`;
+  const dateString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 
   const handleSave = async () => {
     setIsSaving(true);
-    const needsTime = NEED_TIME.has(selectedActivity);
+    const needsTime = selectedActivity === 'Dzień pracy';
     await saveReportForDate(
       user!.uid,
       dateString,
@@ -81,7 +55,6 @@ export default function ActivityScreen() {
       needsTime ? endTime : undefined
     );
     setIsSaving(false);
-    // zamiast replace, wracamy goBack() — wtedy ReportScreen otrzyma focus i odświeży dane
     navigation.goBack();
   };
 
@@ -89,14 +62,8 @@ export default function ActivityScreen() {
     <View style={styles.container}>
       <Appbar.Header>
         <Appbar.Action icon="arrow-left" onPress={() => navigation.goBack()} />
-        <Appbar.Content
-          title={`Aktywność: ${day.padStart(2, '0')}.${month.padStart(
-            2,
-            '0'
-          )}.${year}`}
-        />
+        <Appbar.Content title={`Aktywność: ${day.padStart(2, '0')}.${month.padStart(2, '0')}.${year}`} />
       </Appbar.Header>
-
       {isSaving ? (
         <View style={styles.loader}>
           <ActivityIndicator size="large" />
@@ -116,29 +83,19 @@ export default function ActivityScreen() {
                 ))}
               </Picker>
             </View>
-
-            {NEED_TIME.has(selectedActivity) && (
+            {selectedActivity === 'Dzień pracy' && (
               <>
                 <List.Subheader>Godzina rozpoczęcia</List.Subheader>
                 <View style={styles.pickerWrapper}>
-                  <Picker
-                    selectedValue={startTime}
-                    onValueChange={setStartTime}
-                    enabled={!FORCED_EIGHT.has(selectedActivity)}
-                  >
+                  <Picker selectedValue={startTime} onValueChange={setStartTime} enabled>
                     {HOURS.map((h) => (
                       <Picker.Item key={h} label={h} value={h} />
                     ))}
                   </Picker>
                 </View>
-
                 <List.Subheader>Godzina zakończenia</List.Subheader>
                 <View style={styles.pickerWrapper}>
-                  <Picker
-                    selectedValue={endTime}
-                    onValueChange={setEndTime}
-                    enabled={!FORCED_EIGHT.has(selectedActivity)}
-                  >
+                  <Picker selectedValue={endTime} onValueChange={setEndTime} enabled>
                     {HOURS.map((h) => (
                       <Picker.Item key={h} label={h} value={h} />
                     ))}
@@ -147,15 +104,10 @@ export default function ActivityScreen() {
               </>
             )}
           </List.Section>
-
           <Button mode="contained" onPress={handleSave} style={styles.saveButton}>
             Zapisz
           </Button>
-          <Button
-            mode="text"
-            onPress={() => navigation.goBack()}
-            style={styles.cancelButton}
-          >
+          <Button mode="text" onPress={() => navigation.goBack()} style={styles.cancelButton}>
             Anuluj
           </Button>
         </ScrollView>
