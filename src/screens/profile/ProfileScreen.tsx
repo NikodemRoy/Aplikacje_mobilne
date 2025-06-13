@@ -1,3 +1,5 @@
+// src/screens/home/ProfileScreen.tsx
+
 import React, { useState, useEffect } from 'react';
 import {
   KeyboardAvoidingView,
@@ -5,6 +7,7 @@ import {
   StyleSheet,
   Platform,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import {
   Appbar,
@@ -13,8 +16,10 @@ import {
   HelperText,
   Menu,
   Divider,
-  ActivityIndicator,
 } from 'react-native-paper';
+import { useNavigation } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { TabParamList } from '../../navigation/AppNavigator';
 import { useAuth } from '../../hooks/useAuth';
 import {
   getUserProfile,
@@ -22,7 +27,9 @@ import {
   UserProfile,
 } from '../../services/userService';
 
+type ProfileNavProp = BottomTabNavigationProp<TabParamList, 'Profile'>;
 type Project = UserProfile['project'];
+
 const PROJECT_OPTIONS: Project[] = [
   'Retail',
   'E-commerce',
@@ -31,6 +38,7 @@ const PROJECT_OPTIONS: Project[] = [
 ];
 
 export default function ProfileScreen() {
+  const navigation = useNavigation<ProfileNavProp>();
   const { user, setUser } = useAuth();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -51,7 +59,7 @@ export default function ProfileScreen() {
           setProject(profile.project);
         }
       })
-      .catch(e => console.error('Error loading profile:', e))
+      .catch(e => console.error(e))
       .finally(() => setCheckingProfile(false));
   }, [user]);
 
@@ -59,25 +67,21 @@ export default function ProfileScreen() {
     setShowFirstError(false);
     setShowLastError(false);
     setShowProjectError(false);
-
     if (!firstName.trim()) setShowFirstError(true);
     if (!lastName.trim()) setShowLastError(true);
     if (!project) setShowProjectError(true);
     if (!firstName.trim() || !lastName.trim() || !project) return;
-
     setSaving(true);
     const profileData: UserProfile = {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       project,
     };
-
     try {
       await saveUserProfile(user!.uid, profileData);
       setUser({ ...user!, ...profileData });
       Alert.alert('Sukces', 'Dane zapisane');
-    } catch (e) {
-      console.error('Error saving profile:', e);
+    } catch {
       Alert.alert('Błąd', 'Nie udało się zapisać danych');
     } finally {
       setSaving(false);
@@ -98,6 +102,7 @@ export default function ProfileScreen() {
       style={styles.container}
     >
       <Appbar.Header>
+        <Appbar.Action icon="arrow-left" onPress={() => navigation.goBack()} />
         <Appbar.Content title="Profil" />
       </Appbar.Header>
       <View style={styles.form}>
@@ -111,7 +116,6 @@ export default function ProfileScreen() {
         <HelperText type="error" visible={showFirstError}>
           Imię jest wymagane
         </HelperText>
-
         <TextInput
           label="Nazwisko"
           value={lastName}
@@ -122,7 +126,6 @@ export default function ProfileScreen() {
         <HelperText type="error" visible={showLastError}>
           Nazwisko jest wymagane
         </HelperText>
-
         <Menu
           visible={menuVisible}
           onDismiss={() => setMenuVisible(false)}
@@ -150,14 +153,12 @@ export default function ProfileScreen() {
         <HelperText type="error" visible={showProjectError}>
           Wybierz projekt
         </HelperText>
-
         <Divider style={styles.divider} />
-
         <Button
           mode="contained"
           onPress={onSave}
-          style={styles.saveButton}
           loading={saving}
+          style={styles.saveButton}
         >
           Zapisz
         </Button>
@@ -167,11 +168,7 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   container: { flex: 1, backgroundColor: '#fff' },
   form: { padding: 16 },
   input: { marginBottom: 8 },

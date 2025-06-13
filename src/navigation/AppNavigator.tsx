@@ -25,7 +25,7 @@ function HomeStackNavigator() {
   );
 }
 
-type TabParamList = {
+export type TabParamList = {
   Home: undefined;
   Profile: undefined;
   Settings: undefined;
@@ -35,7 +35,12 @@ const Tab = createBottomTabNavigator<TabParamList>();
 
 export default function AppNavigator() {
   return (
-    <Tab.Navigator initialRouteName="Home">
+    <Tab.Navigator
+      initialRouteName="Home"
+      screenOptions={{
+        tabBarStyle: { display: 'none' },
+      }}
+    >
       <Tab.Screen name="Home" component={HomeStackNavigator} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
       <Tab.Screen name="Settings" component={SettingsScreen} />
