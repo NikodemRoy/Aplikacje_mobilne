@@ -1,32 +1,32 @@
-import React, { useEffect, useState, useCallback } from 'react';
 import {
-  View,
-  StyleSheet,
-  useWindowDimensions,
+  useFocusEffect,
+  useNavigation,
+} from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
   ActivityIndicator,
+  StyleSheet,
   TouchableOpacity,
+  useWindowDimensions,
+  View,
 } from 'react-native';
 import { Calendar, DateData, LocaleConfig } from 'react-native-calendars';
 import {
   Appbar,
+  Button,
   Card,
-  Text,
-  Portal,
   Dialog,
   List,
-  Button,
+  Portal,
+  Text,
 } from 'react-native-paper';
-import {
-  useNavigation,
-  useFocusEffect,
-} from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../hooks/useAuth';
-import {
-  getReportsForMonth,
-  DailyReport,
-} from '../../services/reportService';
 import type { HomeStackParamList } from '../../navigation/AppNavigator';
+import {
+  DailyReport,
+  getReportsForMonth,
+} from '../../services/reportService';
 
 
 const MONTH_NAMES_FULL = [
@@ -126,7 +126,7 @@ export default function CalendarScreen() {
         <Appbar.Content title={`${MONTH_NAMES[monthIndex]} ${year}`} />
         <Appbar.Action
           icon="cog"
-          onPress={() => navigation.getParent()?.navigate('Settings')}
+          onPress={() => navigation.getParent()?.navigate('Profile')}
         />
         <Appbar.Action
           icon="menu-down"

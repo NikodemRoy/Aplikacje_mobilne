@@ -10,6 +10,7 @@ export type User = {
 
 export interface AuthContextType {
   user: User | null;
+  loading: boolean;                       // ← dodane
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   register: (email: string, password: string) => Promise<boolean>;
@@ -18,6 +19,7 @@ export interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType>({
   user: null,
+  loading: true,
   login: async () => false,
   logout: () => {},
   register: async () => false,

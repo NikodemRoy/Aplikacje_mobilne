@@ -1,3 +1,5 @@
+// src/navigation/AppNavigator.tsx
+
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -17,7 +19,12 @@ const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 
 function HomeStackNavigator() {
   return (
-    <HomeStack.Navigator initialRouteName="Calendar">
+    <HomeStack.Navigator
+      initialRouteName="Calendar"
+      screenOptions={{
+        headerShown: false, 
+      }}
+    >
       <HomeStack.Screen name="Calendar" component={CalendarScreen} />
       <HomeStack.Screen name="Report" component={ReportScreen} />
       <HomeStack.Screen name="Activity" component={ActivityScreen} />
@@ -38,7 +45,8 @@ export default function AppNavigator() {
     <Tab.Navigator
       initialRouteName="Home"
       screenOptions={{
-        tabBarStyle: { display: 'none' },
+        headerShown: false,          
+        tabBarStyle: { display: 'none' }, 
       }}
     >
       <Tab.Screen name="Home" component={HomeStackNavigator} />
