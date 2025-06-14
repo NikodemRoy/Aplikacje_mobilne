@@ -1,8 +1,10 @@
 import {
   useFocusEffect,
   useNavigation,
+  useRoute,
 } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RouteProp } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -28,7 +30,6 @@ import {
   getReportsForMonth,
 } from '../../services/reportService';
 
-
 const MONTH_NAMES_FULL = [
   'Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec',
   'Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'
@@ -37,6 +38,7 @@ const MONTH_NAMES_SHORT = [
   'Sty','Lut','Mar','Kwi','Maj','Cze',
   'Lip','Sie','Wrz','Paź','Lis','Gru'
 ];
+
 LocaleConfig.locales['pl'] = {
   monthNames: MONTH_NAMES_FULL,
   monthNamesShort: MONTH_NAMES_SHORT,
@@ -46,14 +48,13 @@ LocaleConfig.locales['pl'] = {
 };
 LocaleConfig.defaultLocale = 'pl';
 
-
 const MONTH_NAMES = MONTH_NAMES_FULL.map(m => m.toLowerCase());
 
-type CalendarNavProp =
-  NativeStackNavigationProp<HomeStackParamList, 'Calendar'>;
+type CalendarNavProp = NativeStackNavigationProp<HomeStackParamList, 'Calendar'>;
 
 export default function CalendarScreen() {
   const navigation = useNavigation<CalendarNavProp>();
+  const route = useRoute<RouteProp<HomeStackParamList, 'Calendar'>>();
   const { user, logout } = useAuth();
   const { width, height } = useWindowDimensions();
 
@@ -64,7 +65,6 @@ export default function CalendarScreen() {
   const [reportsMap, setReportsMap] = useState<Record<string, DailyReport>>({});
   const [totalHoursSum, setTotalHoursSum] = useState(0);
 
-  // obliczamy string dla dzisiejszej daty w formacie YYYY-MM-DD
   const todayDateStr = new Date().toISOString().split('T')[0];
 
   const fetchData = useCallback(async () => {
@@ -77,7 +77,7 @@ export default function CalendarScreen() {
         (acc, r) => acc + (r.totalHours ?? 0),
         0
       );
-      setTotalHoursSum(sum);
+      setTotalHoursSum(Math.round(sum));
     } catch (e) {
       console.error('CalendarScreen fetchData error:', e);
     } finally {
@@ -87,13 +87,20 @@ export default function CalendarScreen() {
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  }, [fetchData, year, monthIndex]);
 
   useFocusEffect(
     useCallback(() => {
       fetchData();
     }, [fetchData])
   );
+
+  useEffect(() => {
+    if (route.params?.refresh) {
+      fetchData();
+      navigation.setParams({ refresh: undefined });
+    }
+  }, [route.params?.refresh, fetchData, navigation]);
 
   const changeMonth = (offset: number) => {
     const newDate = new Date(year, monthIndex + offset, 1);
@@ -238,16 +245,56 @@ export default function CalendarScreen() {
 }
 
 const styles = StyleSheet.create({
-  loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  outerContainer: { flex: 1 },
-  summaryText: { textAlign: 'center', marginVertical: 8 },
-  cardContainer: { margin: 16 },
-  cardContent: { alignItems: 'center' },
-  calendar: { borderRadius: 8 },
-  dayWrapper: { width: 32, height: 48, alignItems: 'center', justifyContent: 'center' },
-  cellBorder: { borderWidth: 1, borderColor: '#ccc', width: '100%', height: '100%' },
-  todayCell: { backgroundColor: '#6200ee' },
-  dayText: { textAlign: 'center' },
-  statusText: { fontSize: 10, textAlign: 'center' },
-  logoutWrapper: { padding: 16 },
+  loaderContainer: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center' 
+  },
+  outerContainer: { 
+    flex: 1 
+  },
+  summaryText: { 
+    textAlign: 'center', 
+    marginVertical: 8,
+    fontSize: 16,
+    fontWeight: 'bold'
+  },
+  cardContainer: { 
+    margin: 16 
+  },
+  cardContent: { 
+    alignItems: 'center' 
+  },
+  calendar: { 
+    borderRadius: 8 
+  },
+  dayWrapper: { 
+    width: 32, 
+    height: 48, 
+    alignItems: 'center', 
+    justifyContent: 'center' 
+  },
+  cellBorder: { 
+    borderWidth: 1, 
+    borderColor: '#ccc', 
+    width: '100%', 
+    height: '100%',
+    justifyContent: 'center',
+    borderRadius: 4
+  },
+  todayCell: { 
+    backgroundColor: '#6200ee' 
+  },
+  dayText: { 
+    textAlign: 'center',
+    fontSize: 14
+  },
+  statusText: { 
+    fontSize: 10, 
+    textAlign: 'center',
+    marginTop: 2
+  },
+  logoutWrapper: { 
+    padding: 16 
+  },
 });

@@ -1,16 +1,15 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { View, StyleSheet, ActivityIndicator, Text as RNText } from 'react-native';
-import { Appbar, Card, Button, Text } from 'react-native-paper';
+import { Appbar, Card, Button, Text, Dialog, Portal } from 'react-native-paper';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { useAuth } from '../../hooks/useAuth';
-import { getReportForDate, DailyReport } from '../../services/reportService';
+import { getReportForDate, DailyReport, deleteReportForDate } from '../../services/reportService';
 import type { HomeStackParamList } from '../../navigation/AppNavigator';
 
 type ReportNavProp = NativeStackNavigationProp<HomeStackParamList, 'Report'>;
 type ReportRouteProp = RouteProp<HomeStackParamList, 'Report'>;
-
 
 type NestedActivity = {
   activity: string;
@@ -18,8 +17,8 @@ type NestedActivity = {
   endTime?: string;
 };
 
-function isNested(obj: any): obj is NestedActivity {
-  return obj && typeof obj === 'object' && typeof obj.activity === 'string';
+function isNested(obj: unknown): obj is NestedActivity {
+  return !!obj && typeof obj === 'object' && 'activity' in obj && typeof obj.activity === 'string';
 }
 
 export default function ReportScreen() {
@@ -28,7 +27,6 @@ export default function ReportScreen() {
   const { year, month, day } = route.params;
   const { user } = useAuth();
 
-
   const mm = month.padStart(2, '0');
   const dd = day.padStart(2, '0');
   const dateString = `${year}-${mm}-${dd}`;
@@ -36,17 +34,15 @@ export default function ReportScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [reportData, setReportData] = useState<DailyReport | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isDeleteDialogVisible, setIsDeleteDialogVisible] = useState(false);
 
   const fetchReport = useCallback(async () => {
     if (!user) return;
-    console.log(`[ReportScreen] fetchReport for ${dateString}`);
     setError(null);
     setIsLoading(true);
     try {
       const raw = await getReportForDate(user.uid, dateString);
-      console.log(`[ReportScreen] data for ${dateString}:`, raw);
       if (raw && isNested(raw.activity)) {
-
         const nested = raw.activity;
         const normalized: DailyReport = {
           date: raw.date,
@@ -60,8 +56,8 @@ export default function ReportScreen() {
       } else {
         setReportData(raw);
       }
-    } catch (e) {
-      console.error('[ReportScreen] fetchReport error:', e);
+    } catch (err) {
+      console.error('[ReportScreen] fetchReport error:', err);
       setError('Błąd pobierania raportu');
     } finally {
       setIsLoading(false);
@@ -72,11 +68,27 @@ export default function ReportScreen() {
     fetchReport();
     const unsub = navigation.addListener('focus', fetchReport);
     return unsub;
-  }, [navigation, fetchReport]);
+  }, [fetchReport, navigation]);
 
-  const handleAddActivity = () => {
+  const handleAddActivity = useCallback(() => {
     navigation.navigate('Activity', { year, month, day });
-  };
+  }, [navigation, year, month, day]);
+
+  const handleDeleteReport = useCallback(async () => {
+    setIsDeleteDialogVisible(false);
+    if (!user || !reportData) return;
+    
+    try {
+      setIsLoading(true);
+      await deleteReportForDate(user.uid, dateString);
+      navigation.navigate('Calendar', { refresh: true });
+    } catch (err) {
+      console.error('[ReportScreen] deleteReport error:', err);
+      setError('Błąd podczas usuwania raportu');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, reportData, dateString, navigation]);
 
   if (isLoading) {
     return (
@@ -128,13 +140,23 @@ export default function ReportScreen() {
                   Utworzono: {reportData.createdAt.toDate().toLocaleString()}
                 </Text>
               )}
-              <Button
-                mode="outlined"
-                onPress={handleAddActivity}
-                style={styles.button}
-              >
-                Edytuj
-              </Button>
+              <View style={styles.buttonsContainer}>
+                <Button
+                  mode="outlined"
+                  onPress={handleAddActivity}
+                  style={styles.button}
+                >
+                  Edytuj
+                </Button>
+                <Button
+                  mode="contained"
+                  onPress={() => setIsDeleteDialogVisible(true)}
+                  style={[styles.button, styles.deleteButton]}
+                  labelStyle={styles.deleteButtonLabel}
+                >
+                  Usuń
+                </Button>
+              </View>
             </>
           ) : (
             <>
@@ -150,19 +172,65 @@ export default function ReportScreen() {
           )}
         </Card.Content>
       </Card>
+
+      <Portal>
+        <Dialog visible={isDeleteDialogVisible} onDismiss={() => setIsDeleteDialogVisible(false)}>
+          <Dialog.Title>Potwierdzenie usunięcia</Dialog.Title>
+          <Dialog.Content>
+            <Text>Czy na pewno chcesz usunąć raport z dnia {dd}.{mm}.{year}?</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setIsDeleteDialogVisible(false)}>Anuluj</Button>
+            <Button onPress={handleDeleteReport}>Usuń</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   center: {
-    flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
   },
-  container: { flex: 1 },
-  card: { margin: 16 },
-  cardContent: { alignItems: 'center' },
-  status: { marginVertical: 8, fontWeight: 'bold' },
-  button: { marginTop: 12 },
-  errorText: { color: 'red', marginBottom: 12, textAlign: 'center' },
-  retryButton: { marginTop: 8 },
+  container: { 
+    flex: 1 
+  },
+  card: { 
+    margin: 16 
+  },
+  cardContent: { 
+    alignItems: 'center' 
+  },
+  status: { 
+    marginVertical: 8, 
+    fontWeight: 'bold' 
+  },
+  buttonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    width: '100%',
+    marginTop: 16,
+    gap: 16,
+  },
+  button: {
+    minWidth: 120,
+  },
+  deleteButton: {
+    backgroundColor: '#ff4444',
+  },
+  deleteButtonLabel: {
+    color: 'white',
+  },
+  errorText: {
+    color: 'red',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 8,
+  },
 });

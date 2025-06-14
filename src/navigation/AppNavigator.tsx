@@ -10,7 +10,7 @@ import ProfileScreen from '../screens/profile/ProfileScreen';
 import SettingsScreen from '../screens/profile/SettingsScreen';
 
 export type HomeStackParamList = {
-  Calendar: undefined;
+  Calendar: { refresh?: boolean } | undefined;
   Report: { year: string; month: string; day: string };
   Activity: { year: string; month: string; day: string };
 };
