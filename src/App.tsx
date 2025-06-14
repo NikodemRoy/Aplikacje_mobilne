@@ -11,7 +11,7 @@ const theme = {
     background: '#FFFFFF',
     text: '#333333',         
     placeholder: '#777777',  
-    surface: '#F6F6F6',
+    surface: '#FFFFFFF',
   },
 };
 
